@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Orange Pro Relay">
+  <defs>
+    <linearGradient id="g" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFB25E"/>
+      <stop offset="1" stop-color="#F26A1B"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#g)"/>
+  <g fill="none" stroke="#FFF7ED" stroke-width="3" stroke-linecap="round">
+    <path d="M20 40c0-12 8-18 12-18s12 6 12 18"/>
+    <path d="M14 44c0-16 10-26 18-26s18 10 18 26"/>
+  </g>
+  <circle cx="32" cy="30" r="4.5" fill="#FFF7ED"/>
+  <circle cx="32" cy="44" r="2.6" fill="#FFF7ED"/>
+  <g fill="#FFF7ED">
+    <circle cx="15" cy="47" r="2.2"/>
+    <circle cx="49" cy="47" r="2.2"/>
+  </g>
+</svg>
