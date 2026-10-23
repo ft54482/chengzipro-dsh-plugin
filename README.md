@@ -1,14 +1,22 @@
-# dsh-plugin-orange-pro
+# 橙子PRO中转站-DSH插件
+[![test](https://github.com/ft54482/chengzipro-dsh-plugin/actions/workflows/test.yml/badge.svg)](https://github.com/ft54482/chengzipro-dsh-plugin/actions/workflows/test.yml)
 
-[![test](https://github.com/ft54482/dsh-plugin-orange-pro/actions/workflows/test.yml/badge.svg)](https://github.com/ft54482/dsh-plugin-orange-pro/actions/workflows/test.yml)
+## 橙子PRO 中转站
 
-把 **橙子PRO（New API 中转站）** 接进 **DeepSeek Harness（DSH）** 的开源 Cordis 插件。
+官网：**https://pro.nat6.net**
 
-登录一次，就能在 DSH 里用到中转站的全部模型、余额、图片与视频能力 —— **不改 DSH 客户端、不 fork、不逆向**，
-只装一个可安装、可禁用、可升级的插件。
+- **模型多、国产齐全**：DeepSeek / Qwen / GLM / Kimi / MiniMax / Claude / GPT / Gemini 等文本模型，以及 image2.5 生图、MiniMax H3 生视频。
+- **满精度、满上下文、满缓存**：正品折扣渠道，不是缩水/裁剪版本。
+- **DeepSeek V4.1 已更新到最新版**：超低折扣（当前全平台 **2.5 折**），缓存命中率可达 **95%+**。
+- **官 Key 非号池**：官方密钥直连，不是共享号池，质量与稳定性有保障。
 
-> 适用平台：任何兼容 [New API](https://github.com/Calcium-Ion/new-api) 体系的橙子PRO 部署（默认 `https://pro.nat6.net`）。
+本仓库是把橙子PRO 接进 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的开源插件：
+登录一次即可在 DSH 里使用中转站的全部模型、余额、图片与视频能力。
+
+> 适用平台：橙子PRO（New API 体系，默认 `https://pro.nat6.net`）。
 > 其它 New API 站点可通过设置页改 Base URL 复用（部分平台专有接口会自动降级）。
+
+**设计原则**：不改 DSH 客户端、不 fork、不逆向 —— 只装一个可安装、可禁用、可升级的插件。
 
 ## 功能
 
@@ -36,10 +44,10 @@
 2. 选择 **从 GitHub 安装**，填入：
 
    ```
-   github:ft54482/dsh-plugin-orange-pro
+   github:ft54482/chengzipro-dsh-plugin
    ```
 
-   或完整仓库地址 `https://github.com/ft54482/dsh-plugin-orange-pro`
+   或完整仓库地址 `https://github.com/ft54482/chengzipro-dsh-plugin`
 3. 安装完成后进入 **设置 → 橙子PRO**，用手机验证码或账号密码登录一次。
 
 > 插件声明了 `dsh.bundle.patch`，安装即自动插入 Loader 行；无需手改 profile 文件。
@@ -47,7 +55,7 @@
 ### 方式 B：本地 clone 后安装
 
 ```bash
-git clone https://github.com/ft54482/dsh-plugin-orange-pro.git
+git clone https://github.com/ft54482/chengzipro-dsh-plugin.git
 ```
 
 然后在 DSH 的插件管理里选择 **从本地路径安装**，指向 clone 下来的目录（或让 Agent 调

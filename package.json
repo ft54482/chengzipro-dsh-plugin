@@ -1,7 +1,7 @@
 {
-  "name": "dsh-plugin-orange-pro",
-  "version": "0.4.1",
-  "description": "DeepSeek Harness plugin for the Orange Pro (New API) relay: account login, group-key model catalog, OpenAI-compatible chat route, image/video generation tools, and vision image input.",
+  "name": "chengzipro-dsh-plugin",
+  "version": "0.4.2",
+  "description": "橙子PRO中转站（https://pro.nat6.net）DSH 插件：登录即用全部模型；国产模型满精度/满上下文/满缓存的正品折扣渠道；DeepSeek V4.1 最新版、2.5 折、缓存率 95%+、官 Key 非号池。",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -28,11 +28,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ft54482/dsh-plugin-orange-pro.git"
+    "url": "git+https://github.com/ft54482/chengzipro-dsh-plugin.git"
   },
-  "homepage": "https://github.com/ft54482/dsh-plugin-orange-pro#readme",
+  "homepage": "https://github.com/ft54482/chengzipro-dsh-plugin#readme",
   "bugs": {
-    "url": "https://github.com/ft54482/dsh-plugin-orange-pro/issues"
+    "url": "https://github.com/ft54482/chengzipro-dsh-plugin/issues"
   },
   "keywords": [
     "deepseek",

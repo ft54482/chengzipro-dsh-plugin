@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.2 — 2026-10-23
+
+### Changed
+- 项目更名为「橙子PRO中转站-DSH插件」；仓库 slug 为 `chengzipro-dsh-plugin`
+  （GitHub 仓库名只允许 ASCII，中文名仅用于展示/README/插件管理标题）。
+- 介绍补充中转站信息：官网 https://pro.nat6.net；国产模型满精度/满上下文/满缓存；
+  DeepSeek V4.1 最新版、2.5 折、缓存率 95%+、官 Key 非号池。
+- 插件管理显示名与描述（locale）、package 描述同步更新。
+
 ## 0.4.1 — 2026-10-23
 
 ### Fixed

@@ -5,7 +5,7 @@
 ## 开发
 
 ```bash
-git clone https://github.com/ft54482/dsh-plugin-orange-pro.git
+git clone https://github.com/ft54482/chengzipro-dsh-plugin.git
 cd dsh-plugin-orange-pro
 node --version   # >= 22
 npm test

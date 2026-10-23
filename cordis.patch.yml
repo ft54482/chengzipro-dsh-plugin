@@ -1,5 +1,5 @@
-# 橙子Pro 中转站接入 bundle。
+# 橙子PRO中转站-DSH插件（bundle）。
 # 只插入一行 Host 插件；Client 半由 dsh.client 声明随包自动加载。
 - insert:
     - id: orange-pro
-      name: 'dsh-plugin-orange-pro'
+      name: 'chengzipro-dsh-plugin'
