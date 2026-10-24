@@ -3,7 +3,7 @@
  * 重点验证：DeepSeek 思考模式必须回传 reasoning_content，其他模型不回传。
  * 用法：node tools/test-adapter.mjs
  */
-import { buildChatBody } from '../src/adapter.js'
+import { buildChatBody, OrangeProAdapter } from '../src/adapter.js'
 import { resolveModelSpec, applyOverride, applySafety } from '../src/model-spec.js'
 import { compatPromptFor } from '../src/model-compat.js'
 import { resolveReplyLanguage } from '../src/locale.js'
@@ -172,6 +172,23 @@ ok('discount: derive integer zhe', deriveDiscountLabel({ discountRatio: 0.9 }) =
 ok('discount: full price hidden', deriveDiscountLabel({ discountRatio: 1 }) === '')
 ok('discount: missing ratio yields nothing', deriveDiscountLabel({}) === '')
 ok('discount: live 2.5 model gets 折 suffix', deriveDiscountLabel({ discountLabel: null, discountRatio: 0.25, groupRatio: 1 }) === '2.5折')
+
+
+// ---- LlmAdapter 可选成员：漏实现会让 DSH 的「上下文压缩」计价直接 TypeError ----
+{
+  const adapter = new OrangeProAdapter({
+    catalog: () => [],
+    findModel: () => undefined,
+    visionOverrides: () => ({}),
+    compatPrompt: () => '',
+  })
+  ok('adapter: imageRequestPricing exists (compaction pricing)', typeof adapter.imageRequestPricing === 'function')
+  ok('adapter: imageRequestPricing returns undefined (platform bills tokens)', adapter.imageRequestPricing('orange-pro', 'deepseek-v4.1-flash') === undefined)
+  const target = adapter.imageRequestTarget('orange-pro', 'deepseek-v4.1-flash', { width: 4096, height: 2048, bytes: 3_000_000 })
+  ok('adapter: imageRequestTarget scales to 4MP budget', target.width === 2896 && target.height === 1448 && target.maxBytes === 1_048_576)
+  const small = adapter.imageRequestTarget('orange-pro', 'deepseek-v4.1-flash', { width: 800, height: 600, bytes: 100_000 })
+  ok('adapter: imageRequestTarget keeps small images', small.width === 800 && small.height === 600)
+}
 
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURE(S)`)
 process.exit(failures === 0 ? 0 : 1)

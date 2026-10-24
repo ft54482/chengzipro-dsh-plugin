@@ -1,6 +1,6 @@
 {
   "name": "chengzipro-dsh-plugin",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "橙子PRO中转站（https://pro.nat6.net）DSH 插件：登录即用全部模型；国产模型满精度/满上下文/满缓存的正品折扣渠道；DeepSeek V4.1 最新版、2.5 折、缓存率 95%+、官 Key 非号池。",
   "license": "MIT",
   "type": "module",

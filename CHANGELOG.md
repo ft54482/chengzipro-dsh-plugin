@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.3 — 2026-10-25
+
+### Fixed
+- **上下文压缩报错** `this.adapters.get(...)?.adapter.imageRequestPricing is not a function`：
+  本插件是鸭子类型适配器（不继承 DSH 内部 `LlmAdapter`），漏实现了基类带默认值的可选成员
+  `imageRequestPricing` / `imageRequestTarget`。DSH 在 token 计量（压缩计价）时无保护地调用它们，
+  导致「上下文压缩」直接 TypeError。现已补齐两个成员（与基类默认语义一致），并加回归单测。
+
 ## 0.4.2 — 2026-10-23
 
 ### Changed

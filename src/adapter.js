@@ -9,7 +9,7 @@
 import { readSSE, PlatformError } from './platform.js'
 import { llmError, fromPlatformError } from './llm-errors.js'
 import { inferModelSpec } from './model-spec.js'
-import { collectImageRefs, modalitiesFor } from './vision.js'
+import { collectImageRefs, modalitiesFor, requestImageTarget } from './vision.js'
 
 const APP_USER_AGENT = 'deepseek-harness/0.2.1 (+https://github.com/deepseek-ai/deepseek-harness)'
 const MIN_SAFE_MAX_TOKENS = 1024
@@ -38,6 +38,27 @@ export class OrangeProAdapter {
       retryableCodes: ['EMPTY_RESPONSE', 'RATE_LIMIT', 'SERVER', 'TIMEOUT', 'TRANSPORT'],
       backoff: { initialDelayMs: 800, maxDelayMs: 15_000, jitterRatio: 0.15 },
     }
+  }
+
+  /**
+   * 图片请求计价（LlmAdapter 可选成员，基类默认返回 undefined）。
+   *
+   * **必须存在**：DSH 运行时（token-meter / compaction 计价）直接调用
+   * `adapter.imageRequestPricing(provider, model)` 且没有可选链；我们是不继承基类的
+   * 鸭子类型适配器，漏掉它会让"上下文压缩"报 TypeError。本路由不单独给图片计价，
+   * 交给平台按 token 结算，所以返回 undefined。
+   */
+  imageRequestPricing(_provider, _model) {
+    return undefined
+  }
+
+  /**
+   * 图片请求目标尺寸/字节预算（LlmAdapter 可选成员，基类默认原样返回）。
+   *
+   * 与 `service.imageDataUrl()` 实际缩放口径保持一致：4M 像素 / 1MB。
+   */
+  imageRequestTarget(_provider, _model, image) {
+    return requestImageTarget(image)
   }
 
   async listModels(provider) {
