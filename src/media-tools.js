@@ -34,6 +34,7 @@ const IMAGE_OUTPUT_SCHEMA = {
     status: { type: 'string', enum: ['generated', 'cancelled', 'needs_confirmation'] },
     files: { type: 'array', items: { type: 'string' }, description: 'Workspace-relative image paths.' },
     model: { type: 'string' },
+    available_models: { type: 'array', items: { type: 'string' }, description: 'Image model ids currently offered by the platform catalog.' },
     size: { type: 'string' },
     price_label: { type: 'string' },
     elapsed_ms: { type: 'number' },
@@ -50,6 +51,7 @@ const VIDEO_OUTPUT_SCHEMA = {
     status: { type: 'string', enum: ['generated', 'cancelled', 'needs_confirmation'] },
     file_path: { type: 'string', description: 'Workspace-relative MP4 path.' },
     model: { type: 'string' },
+    available_models: { type: 'array', items: { type: 'string' }, description: 'Video model ids currently offered by the platform catalog.' },
     protocol: { type: 'string', description: 'official-v2 or native-h3.' },
     task_id: { type: 'string' },
     task_type: { type: 'string' },
@@ -84,21 +86,38 @@ export function registerMediaTools(ctx, deps) {
   }
 }
 
-function imageToolDefinition(ctx, { media, service }) {
-  const models = safeList(() => media.imageModels())
-  const catalog = models
-  const modelList = catalog.length > 0
-    ? catalog.map(model => `${model.id}（${priceLabelOf(model) || '按次'}）`).join('、')
-    : '（目录尚未同步，生成前会先自动同步）'
-  const defaultModel = catalog[0]?.id ?? 'auto'
+/** 目录里当前可用的媒体模型 id（放在工具返回值里，避免描述快照过期）。 */
+function availableModelIds(media, type) {
+  const list = safeList(() => (type === 'image' ? media.imageModels() : media.videoModels()))
+  return list.map(model => model.id)
+}
 
+/**
+ * 解析模型；显式 id 已被平台下架时回退到目录默认值并给出提示。
+ * 这样"平台把 2.6 换成 2.7"时，旧 id 的调用不会直接失败。
+ */
+function resolveWithFallback(resolve, requested) {
+  if (typeof requested === 'string' && requested) {
+    try {
+      return { model: resolve(requested), note: '' }
+    } catch {
+      const model = resolve(undefined)
+      return { model, note: `请求的模型 ${requested} 已不在平台目录中，已自动改用 ${model.id}。` }
+    }
+  }
+  return { model: resolve(undefined), note: '' }
+}
+
+function imageToolDefinition(ctx, { media, service }) {
   return {
     name: 'orange_pro_image',
     description:
-      'Generate one image with the Orange Pro platform image models '
-      + '(model ids and per-image prices are read from the platform catalog; never hardcoded). '
+      'Generate one image with the Orange Pro platform image models. '
+      + 'Model ids and per-image prices are resolved LIVE from the platform catalog at call time '
+      + '(never hardcoded), so models the platform adds, upgrades or retires (e.g. image2.6 → image2.7) '
+      + 'work without a plugin update; the result reports available_models. '
       + 'Use it whenever the user asks to create/draw/生成 a picture, poster, illustration, or slide artwork. '
-      + `Available models: ${modelList}. Default: ${defaultModel}. `
+      + 'Omit `model` to use the catalog default (the baseline non-4K variant; 4K variants cost more). '
       + 'Generation is billed per image to the signed-in Orange Pro account, so the tool first shows a cost confirmation card '
       + '(or requires confirm=true when no interactive answerer is available). '
       + 'The image is written into the session workspace under orange-images/; call present on the returned path so the user sees it.',
@@ -113,9 +132,7 @@ function imageToolDefinition(ctx, { media, service }) {
         },
         model: {
           type: 'string',
-          description: catalog.length > 0
-            ? `Optional image model id. One of: ${catalog.map(model => model.id).join(', ')}. Omit to use ${defaultModel}.`
-            : 'Optional image model id; the platform catalog is the source of truth. Omit to use the baseline model.',
+          description: 'Optional image model id from the live platform catalog. Omit to use the catalog default; if a given id is no longer offered, the tool falls back to the default and says so in `note`.',
         },
         size: {
           type: 'string',
@@ -151,20 +168,27 @@ function imageToolDefinition(ctx, { media, service }) {
       const prompt = String(args?.prompt ?? '').trim()
       if (!prompt) throw new Error('prompt is required.')
       if (prompt.length > MAX_PROMPT_CHARS) throw new Error(`prompt must be at most ${MAX_PROMPT_CHARS} characters.`)
-      const model = media.resolveImageModel(typeof args?.model === 'string' ? args.model : undefined)
+      const { model, note: modelNote } = resolveWithFallback(
+        id => media.resolveImageModel(id),
+        typeof args?.model === 'string' ? args.model : undefined,
+      )
       const priceLabel = priceLabelOf(model) || '按次计费'
+      const availableModels = availableModelIds(media, 'image')
 
       const decision = await confirmWithUser(ctx, exec, {
         title: '生图确认',
         question: `使用 ${model.name} 生成 1 张图片（${priceLabel}），从橙子PRO 账户余额扣除，确认生成？`,
-        detail: truncate(prompt, 400),
+        detail: truncate(modelNote ? `${modelNote}\n${prompt}` : prompt, 400),
         confirmed: args?.confirm === true,
       })
       if (decision === 'cancelled') return { status: 'cancelled' }
       if (decision === 'unconfirmed') {
         return {
           status: 'needs_confirmation',
-          note: `This generates one billed image (${model.name}, ${priceLabel}). Ask the user to confirm, then call orange_pro_image again with confirm=true.`,
+          model: model.id,
+          available_models: availableModels,
+          note: [`This generates one billed image (${model.name}, ${priceLabel}).`, modelNote, 'Ask the user to confirm, then call orange_pro_image again with confirm=true.']
+            .filter(Boolean).join(' '),
         }
       }
 
@@ -182,10 +206,12 @@ function imageToolDefinition(ctx, { media, service }) {
           status: 'generated',
           files: result.files.map(file => file.path),
           model: result.model,
+          available_models: availableModels,
           ...(result.size ? { size: result.size } : {}),
           ...(result.priceLabel ? { price_label: result.priceLabel } : {}),
           elapsed_ms: result.elapsedMs,
           ...(result.revisedPrompt ? { revised_prompt: result.revisedPrompt } : {}),
+          ...(modelNote ? { note: modelNote } : {}),
         }
       } catch (error) {
         throw mediaErrorToToolError(error, service)
@@ -197,18 +223,16 @@ function imageToolDefinition(ctx, { media, service }) {
 function videoToolDefinition(ctx, { media, service }) {
   const models = safeList(() => media.videoModels())
   const catalog = models
-  const modelList = catalog.length > 0
-    ? catalog.map(model => `${model.id}（${priceLabelOf(model) || '按次'}）`).join('、')
-    : '（目录尚未同步，生成前会先自动同步）'
-  const defaultModel = catalog[catalog.length - 1]?.id ?? 'auto'
   const bounds = videoBounds(catalog[catalog.length - 1])
 
   return {
     name: 'orange_pro_video',
     description:
-      'Generate one short video (1-15s) with the Orange Pro platform MiniMax H3 models. '
+      'Generate one short video (1-15s) with the Orange Pro platform video models. '
+      + 'Model ids and per-call prices are resolved LIVE from the platform catalog at call time, '
+      + 'so models the platform adds, upgrades or retires work without a plugin update; the result reports available_models. '
       + 'Use it whenever the user asks to create/生成 a video, animation, or short clip. '
-      + `Available models: ${modelList}. Default: ${defaultModel}. `
+      + 'Omit `model` to use the catalog default. '
       + 'Supports text-to-video, multi-reference (1-9 reference images) and first/last-frame (exactly 2 images) modes. '
       + 'The platform speaks the MiniMax official /v2 protocol when it is deployed and falls back to the native /v1/h3 protocol otherwise — '
       + 'both are handled automatically, no extra input from the model. '
@@ -226,7 +250,7 @@ function videoToolDefinition(ctx, { media, service }) {
         },
         model: {
           type: 'string',
-          description: `Optional video model id. One of: ${catalog.map(model => model.id).join(', ')}. Omit to use ${defaultModel}.`,
+          description: 'Optional video model id from the live platform catalog. Omit to use the catalog default; if a given id is no longer offered, the tool falls back to the default and says so in `note`.',
         },
         duration_seconds: {
           type: 'number',
@@ -278,8 +302,12 @@ function videoToolDefinition(ctx, { media, service }) {
       if (!prompt) throw new Error('prompt is required.')
       if (prompt.length > MAX_PROMPT_CHARS) throw new Error(`prompt must be at most ${MAX_PROMPT_CHARS} characters.`)
 
-      const model = media.resolveVideoModel(typeof args?.model === 'string' ? args.model : undefined)
+      const { model, note: modelNote } = resolveWithFallback(
+        id => media.resolveVideoModel(id),
+        typeof args?.model === 'string' ? args.model : undefined,
+      )
       const priceLabel = priceLabelOf(model) || '按次计费'
+      const availableModels = availableModelIds(media, 'video')
       const modelBounds = videoBounds(model)
       const pathList = Array.isArray(args?.reference_images)
         ? args.reference_images.filter(value => typeof value === 'string' && value.trim()).map(value => value.trim())
@@ -291,14 +319,17 @@ function videoToolDefinition(ctx, { media, service }) {
       const decision = await confirmWithUser(ctx, exec, {
         title: '生视频确认',
         question: `使用 ${model.name} 生成 1 段视频（${priceLabel}，按次计费与时长无关），从橙子PRO 账户余额扣除，确认生成？`,
-        detail: truncate(prompt, 400),
+        detail: truncate(modelNote ? `${modelNote}\n${prompt}` : prompt, 400),
         confirmed: args?.confirm === true,
       })
       if (decision === 'cancelled') return { status: 'cancelled' }
       if (decision === 'unconfirmed') {
         return {
           status: 'needs_confirmation',
-          note: `This generates one billed video (${model.name}, ${priceLabel}). Ask the user to confirm, then call orange_pro_video again with confirm=true.`,
+          model: model.id,
+          available_models: availableModels,
+          note: [`This generates one billed video (${model.name}, ${priceLabel}).`, modelNote, 'Ask the user to confirm, then call orange_pro_video again with confirm=true.']
+            .filter(Boolean).join(' '),
         }
       }
 
@@ -323,6 +354,7 @@ function videoToolDefinition(ctx, { media, service }) {
           status: 'generated',
           file_path: result.file.path,
           model: result.model,
+          available_models: availableModels,
           protocol: result.protocol,
           task_id: result.taskId,
           task_type: result.taskType,
@@ -331,6 +363,7 @@ function videoToolDefinition(ctx, { media, service }) {
           duration_seconds: result.durationSeconds,
           ...(result.priceLabel ? { price_label: result.priceLabel } : {}),
           elapsed_ms: result.elapsedMs,
+          ...(modelNote ? { note: modelNote } : {}),
         }
       } catch (error) {
         throw mediaErrorToToolError(error, service)

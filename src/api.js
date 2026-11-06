@@ -45,6 +45,9 @@ export function registerRoutes(ctx, service, logger, options = {}) {
         if (req.method === 'GET' && action === 'media') {
           return send(res, 200, { ok: true, data: await mediaStatus(service, media) })
         }
+        if (req.method === 'GET' && action === 'catalog-check') {
+          return send(res, 200, { ok: true, data: await catalogCheck(ctx, service) })
+        }
         if (req.method !== 'POST') {
           return send(res, 405, { ok: false, error: { code: 'METHOD', message: 'use GET status or POST actions' } })
         }
@@ -92,8 +95,48 @@ export function registerRoutes(ctx, service, logger, options = {}) {
 /**
  * 诊断端点：回读 DSH 运行时实际看到的路由与目录，不涉及凭据。
  */
-async function diagnose(ctx, service) {
+/**
+ * 复刻 DSH 的 buildModelCatalog 校验：列出 provider，再对每个模型调用
+ * `ctx.llm.listModels` + `ctx.llm.resolveModelInfo`。
+ *
+ * 为什么要单独做：DSH 构建浏览器模型目录时，**任意一个模型**的 resolveModelInfo 抛错
+ * 都会把整个 provider 分组记为 failure 并从目录里丢掉；结果就是选择器里看不到这个分组。
+ * 这个端点能直接指出是哪个模型坏了，或者证明 Host 目录构建完全正常（问题在客户端缓存）。
+ */
+async function catalogCheck(ctx, service) {
   const providerId = service.effectiveConfig().providerId
+  const providers = ctx.llm.listProviders().map(provider => ({ id: provider.id, name: provider.name }))
+  const result = { providerId, providers, listed: 0, resolved: 0, errors: [] }
+
+  let models = []
+  try {
+    models = await ctx.llm.listModels(providerId)
+  } catch (error) {
+    result.errors.push({ stage: 'listModels', error: String(error?.message ?? error) })
+    return { ...result, ok: false }
+  }
+  result.listed = models.length
+
+  for (const model of models) {
+    try {
+      const info = await ctx.llm.resolveModelInfo(providerId, model.id)
+      if (!info?.id || !info?.name) throw new Error('empty model identity')
+      result.resolved++
+    } catch (error) {
+      result.errors.push({
+        stage: 'resolveModelInfo',
+        model: model.id,
+        code: error?.failure?.code ?? error?.code,
+        error: String(error?.message ?? error),
+      })
+    }
+  }
+
+  result.ok = result.errors.length === 0 && result.resolved > 0
+  return result
+}
+
+async function diagnose(ctx, service) {  const providerId = service.effectiveConfig().providerId
   let providers = []
   try {
     providers = ctx.llm.listProviders()

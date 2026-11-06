@@ -3,6 +3,23 @@
 > 模型 id 与单价**全部来自平台目录**（当前图像为 `gpt-image-2.6-*` 家族）；平台换版时插件无需改代码。
 > 代码里不再保留下架模型的硬编码兜底，目录为空时工具会提示先同步。
 
+## 0. 版本无关（为什么 2.6 → 2.7 不用发版）
+
+平台换媒体模型版本时，**插件不需要更新**，链路是：
+
+1. 同步（启动 2s 后 / 每 10 分钟 / 手动）从 `/api/v1/models` 取 `type=image|video` 的条目；
+2. 工具的模型解析在**调用时**读实时目录：省略 `model` → 用目录默认款（非 4K 基础款）；
+   显式传的旧 id 已下架 → 自动回退到目录默认，并在返回 `note` 里说明；
+3. 工具返回值带 `available_models`（当前目录里的 id 列表），模型据此换用新 id；
+4. 工具描述不写死具体版本 id，避免"描述里还是 2.5"的过期问题。
+
+**只有这些变化才需要改插件**：协议变了（image 从 `sync` 改成异步任务等）、目录字段语义变了、
+新增媒体类型（音频等）。
+
+> 验证：本地用 `gpt-image-2.7-*` 假目录跑 `extractMediaModels + pickDefaultMediaModel`，
+> 默认模型自动取 `gpt-image-2.7-flare`；`tools/test-media.mjs` 20 项、`test-plugin-smoke.mjs` 12 项全绿。
+
+
 > 状态：已实现，单测 32 项全绿（`node test/test-media.test.mjs` + `node test/test-plugin-smoke.test.mjs`）。
 > 平台侧实测证据见 `.agent/memory/facts.md` 的 `F-MEDIA-*` 条目。
 > 本文只写"怎么用 / 为什么这么实现 / 边界在哪"，不重复平台文档。
