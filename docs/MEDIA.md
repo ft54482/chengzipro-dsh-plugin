@@ -1,14 +1,17 @@
-# 媒体能力：image2.5 生图 + MiniMax H3 生视频（v0.4.0）
+# 媒体能力：平台目录图像模型 + MiniMax H3 生视频
 
-> 状态：已实现，单测 32 项全绿（`node test/media.test.mjs` + `node test/plugin-smoke.test.mjs`）。
-> 平台侧实测证据见 `docs/ARCHITECTURE.md` 与仓库 Issue/PR 记录。
+> 模型 id 与单价**全部来自平台目录**（当前图像为 `gpt-image-2.6-*` 家族）；平台换版时插件无需改代码。
+> 代码里不再保留下架模型的硬编码兜底，目录为空时工具会提示先同步。
+
+> 状态：已实现，单测 32 项全绿（`node test/test-media.test.mjs` + `node test/test-plugin-smoke.test.mjs`）。
+> 平台侧实测证据见 `.agent/memory/facts.md` 的 `F-MEDIA-*` 条目。
 > 本文只写"怎么用 / 为什么这么实现 / 边界在哪"，不重复平台文档。
 
 ## 1. 两个 Agent 工具
 
 | 工具 | 模型 | 计费 | 产物 |
 |---|---|---|---|
-| `orange_pro_image` | `gpt-image-2.5-flare` / `-sunburst` / 各自的 `-4k` | 按张（¥0.15 / ¥0.38 / ¥0.45） | `orange-images/image-<时间戳>.png` |
+| `orange_pro_image` | 平台目录当前图像模型（如 `gpt-image-2.6-flare` / `-sunburst` / 各自 `-4k`） | 按张，随目录（实测 ¥0.15 / ¥0.38 / ¥0.45） | `orange-images/image-<时间戳>.png` |
 | `orange_pro_video` | `MiniMax-H3 768P` / `MiniMax-H3 2K` | 按次（¥1.2 / ¥1.9，与时长无关） | `orange-videos/video-<时间戳>.mp4` |
 
 两者都注册在 DSH 全局 `tools` 服务上，**不写进模型选择器**（媒体模型不能当对话模型用）。
@@ -63,7 +66,7 @@
 - 平台按**分组**发密钥（`GET /api/v1/account/api-key` 返回 `keys:{组:sk-…}`），不是按模型建 key。
 - 目录里 4 个 image 模型与 2 个 H3 视频模型的 `group` 都是 **`vip`**；插件登录时已经缓存了全部组
   （本机实测 12 组：`vip / deepseek / glm / kimi / qwen / minimax / kimi-k3 / qwen high / codex / gemini官转 / claude-enterprise / apiKey`）。
-- 因此**现有插件不需要、也不会在平台里新建 image2.5 / H3 的 key**：直接复用 `vip` 组密钥。
+- 因此**现有插件不需要、也不会在平台里新建图像 / H3 的 key**：直接复用 `vip` 组密钥。
   实测：用 `vip` key 调 `/v1/models` 能看到 4 个 image + 2 个 H3；`/v1/images/generations`
   返回的是内容/参数类 400（说明模型已授权），不是 403 no access。
 - 注意：`minimax` 组调 H3 会 `503 model_not_found`（该组没有 H3 渠道）。插件按目录 `group` 取钥，
@@ -98,8 +101,8 @@ orange_pro_video
 |---|---|
 | `GET /orange-pro/api/media` | 目录里的 image/video 模型、每组密钥是否覆盖、当前视频协议（official-v2/native-h3）；不扣费 |
 | `POST /orange-pro/api/selftest {"mode":"media","kind":"video"}` | 单模型链路自检（密钥/分组/协议/余额），**不发起生成** |
-| `node test/media.test.mjs` | 20 项：目录筛选/请求体/官方协议/回退/参数护栏/错误语义 |
-| `node test/plugin-smoke.test.mjs` | 12 项：工具定义契约/未确认不扣费/确认卡/工作区约束 |
+| `node test/test-media.test.mjs` | 20 项：目录筛选/请求体/官方协议/回退/参数护栏/错误语义 |
+| `node test/test-plugin-smoke.test.mjs` | 12 项：工具定义契约/未确认不扣费/确认卡/工作区约束 |
 
 ## 7. 已知边界
 

@@ -5,7 +5,7 @@
 
 官网：**https://pro.nat6.net**
 
-- **模型多、国产齐全**：DeepSeek / Qwen / GLM / Kimi / MiniMax / Claude / GPT / Gemini 等文本模型，以及 image2.5 生图、MiniMax H3 生视频。
+- **模型多、国产齐全**：DeepSeek / Qwen / GLM / Kimi / MiniMax / Claude / GPT / Gemini 等文本模型，以及图像模型（当前 2.6 家族）、MiniMax H3 生视频。
 - **满精度、满上下文、满缓存**：正品折扣渠道，不是缩水/裁剪版本。
 - **DeepSeek V4.1 已更新到最新版**：超低折扣（当前全平台 **2.5 折**），缓存命中率可达 **95%+**。
 - **官 Key 非号池**：官方密钥直连，不是共享号池，质量与稳定性有保障。
@@ -27,7 +27,7 @@
 | 🔑 分组密钥 | 按目录 `group` 自动选密钥；401/403 自动重签重试；503 自动刷目录重试 |
 | 💬 OpenAI 兼容 | `/chat/completions` SSE、tools / function calling、thinking 模型 reasoning 回传 |
 | 🖼 图片输入 | 视觉模型可直接在 DSH 里贴图对话（能力表 + 可配置覆盖） |
-| 🎨 生图 | Agent 工具 `orange_pro_image`：image2.5 家族，按张计费 + 确认卡 |
+| 🎨 生图 | Agent 工具 `orange_pro_image`：模型 id 与单价全部读平台目录（当前 2.6 家族），按张计费 + 确认卡 |
 | 🎬 生视频 | Agent 工具 `orange_pro_video`：MiniMax H3，官方 V2 协议优先、原生 `/v1/h3/*` 回退 |
 | 💰 余额/诊断 | 设置页显示平台实时余额；`/orange-pro/api/*` 同源诊断端点 |
 
@@ -109,7 +109,7 @@ curl -X POST http://127.0.0.1:<port>/orange-pro/api/config \
 
 | 工具 | 模型 | 计费 | 产物 |
 |---|---|---|---|
-| `orange_pro_image` | `gpt-image-2.5-flare/sunburst`（及 4K） | ¥0.15–0.45/张 | `orange-images/*.png` |
+| `orange_pro_image` | 平台目录当前图像模型（如 `gpt-image-2.6-flare/sunburst` 及 4K） | 按张，¥0.15–0.45（随目录） | `orange-images/*.png` |
 | `orange_pro_video` | `MiniMax-H3 768P / 2K` | ¥1.2 / 1.9 每次 | `orange-videos/*.mp4` |
 
 - **不确认不扣费**：有交互确认卡时弹卡；没有时要求模型显式 `confirm: true`；生成前还会查余额预拦截。

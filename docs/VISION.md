@@ -77,8 +77,8 @@ POST /orange-pro/api/config
 ## 4. 验证
 
 ```bash
-node test/vision.test.mjs    # 15 项：能力判定 / 序列化 / 端到端 SSE / 错误翻译
-node test/adapter.test.mjs   # 既有 30+ 项回归
+node test/test-vision.test.mjs    # 15 项：能力判定 / 序列化 / 端到端 SSE / 错误翻译
+node test/test-adapter.test.mjs   # 既有 30+ 项回归
 ```
 
 真实链路的独立验证脚本（不在单测里，避免扣费）核心断言：

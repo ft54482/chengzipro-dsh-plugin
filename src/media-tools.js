@@ -1,5 +1,7 @@
 /**
- * Agent 工具：`orange_pro_image`（image2.5 生图）与 `orange_pro_video`（MiniMax H3 生视频）。
+ * Agent 工具：`orange_pro_image`（平台目录里的图像模型，按张计费）与
+ * `orange_pro_video`（MiniMax H3 生视频）。模型 id 与价格一律来自平台目录，不在代码里写死版本
+ * （平台会整体换版，如 image2.5 → image2.6）。
  *
  * 为什么不 import `@deepseek-ai/dsh-tools`：第三方 bundle 安装在 profile 里，解析不到
  * DSH 内部包（与 index.js 不 export Config 是同一个原因）。`ToolRuntime.register()`
@@ -84,15 +86,17 @@ export function registerMediaTools(ctx, deps) {
 
 function imageToolDefinition(ctx, { media, service }) {
   const models = safeList(() => media.imageModels())
-  const fallback = media.fallbackImageModels()
-  const catalog = models.length > 0 ? models : fallback
-  const modelList = catalog.map(model => `${model.id}（${priceLabelOf(model) || '按次'}）`).join('、')
-  const defaultModel = catalog[0]?.id ?? 'gpt-image-2.5-flare'
+  const catalog = models
+  const modelList = catalog.length > 0
+    ? catalog.map(model => `${model.id}（${priceLabelOf(model) || '按次'}）`).join('、')
+    : '（目录尚未同步，生成前会先自动同步）'
+  const defaultModel = catalog[0]?.id ?? 'auto'
 
   return {
     name: 'orange_pro_image',
     description:
-      'Generate one image with the Orange Pro platform image models (image2.5 family). '
+      'Generate one image with the Orange Pro platform image models '
+      + '(model ids and per-image prices are read from the platform catalog; never hardcoded). '
       + 'Use it whenever the user asks to create/draw/生成 a picture, poster, illustration, or slide artwork. '
       + `Available models: ${modelList}. Default: ${defaultModel}. `
       + 'Generation is billed per image to the signed-in Orange Pro account, so the tool first shows a cost confirmation card '
@@ -109,7 +113,9 @@ function imageToolDefinition(ctx, { media, service }) {
         },
         model: {
           type: 'string',
-          description: `Optional image model id. One of: ${catalog.map(model => model.id).join(', ')}. Omit to use ${defaultModel}.`,
+          description: catalog.length > 0
+            ? `Optional image model id. One of: ${catalog.map(model => model.id).join(', ')}. Omit to use ${defaultModel}.`
+            : 'Optional image model id; the platform catalog is the source of truth. Omit to use the baseline model.',
         },
         size: {
           type: 'string',
@@ -190,10 +196,11 @@ function imageToolDefinition(ctx, { media, service }) {
 
 function videoToolDefinition(ctx, { media, service }) {
   const models = safeList(() => media.videoModels())
-  const fallback = media.fallbackVideoModels()
-  const catalog = models.length > 0 ? models : fallback
-  const modelList = catalog.map(model => `${model.id}（${priceLabelOf(model) || '按次'}）`).join('、')
-  const defaultModel = catalog[catalog.length - 1]?.id ?? 'MiniMax-H3 768P'
+  const catalog = models
+  const modelList = catalog.length > 0
+    ? catalog.map(model => `${model.id}（${priceLabelOf(model) || '按次'}）`).join('、')
+    : '（目录尚未同步，生成前会先自动同步）'
+  const defaultModel = catalog[catalog.length - 1]?.id ?? 'auto'
   const bounds = videoBounds(catalog[catalog.length - 1])
 
   return {

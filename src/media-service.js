@@ -63,27 +63,27 @@ export class OrangeMediaService {
     return mediaModelsOfType(this.service.mediaCatalog(), 'video')
   }
 
-  /** 目录不可用时的兜底（与平台现役模型一致，仅用于工具描述渲染）。 */
+  /**
+   * 目录不可用时的兜底。
+   *
+   * 这里**故意不再硬编码模型 id**：平台会整体换版（image2.5 → 2.6），硬编码的兜底会立刻过期，
+   * 还会让工具描述显示已下架的模型。模型清单一律以平台目录为准；目录为空时由工具提示先同步。
+   */
   fallbackImageModels() {
-    return [
-      { id: 'gpt-image-2.5-flare', name: 'Flare 标准', type: 'image', priceCny: 0.15 },
-      { id: 'gpt-image-2.5-sunburst', name: 'Sunburst 标准', type: 'image', priceCny: 0.15 },
-      { id: 'gpt-image-2.5-flare-4k', name: 'Flare 4K', type: 'image', priceCny: 0.38 },
-      { id: 'gpt-image-2.5-sunburst-4k', name: 'Sunburst 4K', type: 'image', priceCny: 0.45 },
-    ]
+    return []
   }
 
   fallbackVideoModels() {
-    return [
-      { id: 'MiniMax-H3 768P', name: 'MiniMax H3 768P', type: 'video', priceCny: 1.2 },
-      { id: 'MiniMax-H3 2K', name: 'MiniMax H3 2K', type: 'video', priceCny: 1.9 },
-    ]
+    return []
   }
 
   /** 解析要用的图片模型：显式 id > 目录默认 > 兜底默认。 */
   resolveImageModel(requested) {
     const models = this.imageModels()
-    const source = models.length > 0 ? models : this.fallbackImageModels()
+    if (models.length === 0) {
+      throw new MediaError('图片模型目录尚未同步，请先在设置页点「立即同步」，或稍候自动同步完成。', 'MEDIA')
+    }
+    const source = models
     if (typeof requested === 'string' && requested) {
       const hit = source.find(model => model.id === requested)
       if (!hit) {
@@ -97,7 +97,10 @@ export class OrangeMediaService {
   /** 解析要用的视频模型。 */
   resolveVideoModel(requested) {
     const models = this.videoModels()
-    const source = models.length > 0 ? models : this.fallbackVideoModels()
+    if (models.length === 0) {
+      throw new MediaError('视频模型目录尚未同步，请先在设置页点「立即同步」，或稍候自动同步完成。', 'MEDIA')
+    }
+    const source = models
     if (typeof requested === 'string' && requested) {
       const hit = source.find(model => model.id === requested)
       if (!hit) {
