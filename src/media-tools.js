@@ -254,12 +254,11 @@ function videoToolDefinition(ctx, { media, service }) {
         },
         duration_seconds: {
           type: 'number',
-          description: `Video length ${bounds.minDuration}-${bounds.maxDuration} seconds. Billing is per call, independent of duration.`,
+          description: 'Video length in seconds; the platform clamps it to the range advertised by the live catalog (typically 1-15). Billing is per call, independent of duration.',
         },
         aspect_ratio: {
           type: 'string',
-          enum: bounds.aspectRatios,
-          description: `Aspect ratio, one of: ${bounds.aspectRatios.join(', ')}. Default 16:9.`,
+          description: 'Aspect ratio such as 16:9, 9:16, 1:1, 4:3, 3:4, 21:9. Validated against the LIVE catalog at call time; unsupported values fall back to 16:9 and are reported in `note`. Default 16:9.',
         },
         reference_images: {
           type: 'array',
@@ -315,11 +314,18 @@ function videoToolDefinition(ctx, { media, service }) {
       if (pathList.length > modelBounds.maxRefImages) {
         throw new Error(`At most ${modelBounds.maxRefImages} reference images are allowed for ${model.id}.`)
       }
+      // 画幅在调用时按实时目录校验（工具 schema 不再固化枚举），不支持的值回落默认并说明。
+      const requestedRatio = typeof args?.aspect_ratio === 'string' ? args.aspect_ratio : undefined
+      const aspectRatio = requestedRatio && modelBounds.aspectRatios.includes(requestedRatio) ? requestedRatio : undefined
+      const ratioNote = requestedRatio && !aspectRatio
+        ? `画幅 ${requestedRatio} 不在当前模型支持范围（${modelBounds.aspectRatios.join('/')}），已回落到默认 16:9。`
+        : ''
+      const note = [modelNote, ratioNote].filter(Boolean).join(' ')
 
       const decision = await confirmWithUser(ctx, exec, {
         title: '生视频确认',
         question: `使用 ${model.name} 生成 1 段视频（${priceLabel}，按次计费与时长无关），从橙子PRO 账户余额扣除，确认生成？`,
-        detail: truncate(modelNote ? `${modelNote}\n${prompt}` : prompt, 400),
+        detail: truncate(note ? `${note}\n${prompt}` : prompt, 400),
         confirmed: args?.confirm === true,
       })
       if (decision === 'cancelled') return { status: 'cancelled' }
@@ -328,7 +334,7 @@ function videoToolDefinition(ctx, { media, service }) {
           status: 'needs_confirmation',
           model: model.id,
           available_models: availableModels,
-          note: [`This generates one billed video (${model.name}, ${priceLabel}).`, modelNote, 'Ask the user to confirm, then call orange_pro_video again with confirm=true.']
+          note: [`This generates one billed video (${model.name}, ${priceLabel}).`, note, 'Ask the user to confirm, then call orange_pro_video again with confirm=true.']
             .filter(Boolean).join(' '),
         }
       }
@@ -344,7 +350,7 @@ function videoToolDefinition(ctx, { media, service }) {
           prompt,
           model: model.id,
           ...(typeof args?.duration_seconds === 'number' ? { durationSeconds: args.duration_seconds } : {}),
-          ...(typeof args?.aspect_ratio === 'string' ? { aspectRatio: args.aspect_ratio } : {}),
+          ...(aspectRatio ? { aspectRatio } : {}),
           ...(typeof args?.task === 'string' ? { taskType: args.task } : {}),
           referenceImages: references,
           cwd,
@@ -363,7 +369,7 @@ function videoToolDefinition(ctx, { media, service }) {
           duration_seconds: result.durationSeconds,
           ...(result.priceLabel ? { price_label: result.priceLabel } : {}),
           elapsed_ms: result.elapsedMs,
-          ...(modelNote ? { note: modelNote } : {}),
+          ...(note ? { note } : {}),
         }
       } catch (error) {
         throw mediaErrorToToolError(error, service)
