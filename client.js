@@ -5,7 +5,7 @@
  * 页面不接收、不回显任何 token 或 sk- 密钥；只显示账号、余额与模型。
  */
 window.__ModuleLoader__.load({
-  id: '@orange-pro/dsh-orange-pro',
+  id: 'chengzipro-dsh-plugin',
   factory(require) {
     const React = require('react')
     const h = React.createElement
