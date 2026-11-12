@@ -24,7 +24,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node test/vision.test.mjs && node test/adapter.test.mjs && node test/media.test.mjs && node test/plugin-smoke.test.mjs"
+    "test": "node test/client-id.test.mjs && node test/vision.test.mjs && node test/adapter.test.mjs && node test/media.test.mjs && node test/plugin-smoke.test.mjs"
   },
   "repository": {
     "type": "git",

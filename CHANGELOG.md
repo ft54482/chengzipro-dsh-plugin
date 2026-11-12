@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- **客户端 bundle 的 ModuleLoader id 改为 npm 包名**：`client.js` 的 `window.__ModuleLoader__.load({ id })` 原来写死
+  `@orange-pro/dsh-orange-pro`，与包名 `chengzipro-dsh-plugin` 不一致。dsh-client-modules 因此判定"已加载但未注册"，
+  再用 fallback URL 把同一 bundle 执行第二遍，触发 `duplicate factory registration` →
+  `web boot: 1 entry did not activate` → renderer recovery exhausted，**DSH 窗口直接打不开**（社区只能靠手工打
+  pnpm 补丁绕过，且每次升级都要重做补丁）。
+- 新增 `test/client-id.test.mjs`：断言客户端 id 等于 `package.json` 的 `name`，并纳入 `npm test`。
+
 ## 0.4.7 — 2026-11-07
 
 ### Changed
